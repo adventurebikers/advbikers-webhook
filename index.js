@@ -64,7 +64,7 @@ async function sendTemplate(phone, templateName, nome, bike) {
     type: 'template',
     template: {
       name: templateName,
-      language: { code: 'pt_BR' },
+      language: { code: 'en_US' },
       components: [
         {
           type: 'body',
