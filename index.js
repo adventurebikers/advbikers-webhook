@@ -28,7 +28,7 @@ const TEMPLATE_MAP = {
 };
 
 // Idiomas para tentar em ordem
-const LANG_CODES = ['en', 'en_US', 'en_GB', 'pt_BR'];
+const LANG_CODES = ['pt_BR', 'en', 'en_US', 'en_GB'];
 
 const MSG_AUTO_REPLY =
   'Ol\u00E1! \uD83D\uDE04 Este n\u00FAmero \u00E9 exclusivo para *notifica\u00E7\u00F5es autom\u00E1ticas* da Adventure Bikers.\n\n' +
