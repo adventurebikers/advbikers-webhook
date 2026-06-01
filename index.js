@@ -125,11 +125,58 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, langCode) {
+  let p = String(phone).replace(/\D/g, '');
+  if (!p.startsWith('55')) p = '55' + p;
+  const response = await axios.post(
+    `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`,
+    {
+      messaging_product: 'whatsapp',
+      to: p,
+      type: 'template',
+      template: {
+        name: 'bike_orcamento_valores',
+        language: { code: langCode },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: nome },
+              { type: 'text', text: bike },
+              { type: 'text', text: servicos },
+              { type: 'text', text: total }
+            ]
+          }
+        ]
+      }
+    },
+    { headers: { Authorization: `Bearer ${WA_TOKEN}`, 'Content-Type': 'application/json' } }
+  );
+  return response.data;
+}
+
 app.post('/enviar', async (req, res) => {
-  const { telefone, mensagem, col, nome, bike } = req.body;
+  const { telefone, mensagem, col, nome, bike, orcamento } = req.body;
   if (!telefone) return res.status(400).json({ erro: 'telefone obrigatorio' });
 
-  // Tentar template primeiro
+  // Template de orçamento com 4 variáveis
+  if (orcamento && nome && bike) {
+    for (const lang of LANG_CODES) {
+      try {
+        const data = await sendOrcamentoTemplate(
+          telefone, nome, bike, orcamento.servicos, orcamento.total, lang
+        );
+        console.log(`Template orcamento enviado com ${lang} para: ${telefone}`);
+        return res.json({ sucesso: true, tipo: 'template_orcamento', data });
+      } catch (err) {
+        console.log(`Orcamento template ${lang} falhou:`, err.response?.data?.error?.message || err.message);
+      }
+    }
+    // Fallback texto livre
+    console.log('Fallback texto livre para orcamento');
+  }
+
+  // Template de status
   if (col && nome && bike && TEMPLATE_MAP[col]) {
     try {
       const result = await sendTemplateWithFallback(telefone, TEMPLATE_MAP[col], nome, bike);
@@ -139,7 +186,7 @@ app.post('/enviar', async (req, res) => {
     }
   }
 
-  // Texto livre (orçamento, recusa, etc.)
+  // Texto livre
   if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatoria' });
   try {
     const data = await sendTextMessage(telefone, mensagem);
