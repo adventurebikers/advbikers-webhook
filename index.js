@@ -186,7 +186,10 @@ app.post('/enviar', async (req, res) => {
     }
   }
 
-  // Texto livre
+  // Texto livre - se veio orcamento mas template falhou, monta mensagem
+  if (!mensagem && orcamento) {
+    mensagem = 'Ola ' + (nome||'') + '! Segue o orcamento da sua bike: ' + (bike||'') + '\n\nServicos:\n' + (orcamento.servicos||'') + '\n\nTotal: ' + (orcamento.total||'');
+  }
   if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatoria' });
   try {
     const data = await sendTextMessage(telefone, mensagem);
