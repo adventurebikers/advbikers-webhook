@@ -156,7 +156,8 @@ async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, langCod
 }
 
 app.post('/enviar', async (req, res) => {
-  const { telefone, mensagem, col, nome, bike, orcamento } = req.body;
+  const { telefone, col, nome, bike, orcamento } = req.body;
+  let { mensagem } = req.body;
   if (!telefone) return res.status(400).json({ erro: 'telefone obrigatorio' });
 
   // Template de orçamento com 4 variáveis
@@ -172,8 +173,16 @@ app.post('/enviar', async (req, res) => {
         console.log(`Orcamento template ${lang} falhou:`, err.response?.data?.error?.message || err.message);
       }
     }
-    // Fallback texto livre
-    console.log('Fallback texto livre para orcamento');
+    // Fallback: monta mensagem de texto com os dados do orçamento
+    console.log('Todos os idiomas do template orcamento falharam — usando fallback texto livre');
+    mensagem =
+      '\uD83D\uDEB5 *Adventure Bikers*\n\n' +
+      'Ol\u00E1, *' + (nome || '') + '*!\n\n' +
+      'Segue o or\u00E7amento para a sua bike *' + (bike || '') + '*:\n\n' +
+      (orcamento.servicos || '') + '\n\n' +
+      '*Total: ' + (orcamento.total || '') + '*\n\n' +
+      'Qualquer d\u00FAvida, fale com a gente:\n' +
+      'https://wa.me/5519999683552';
   }
 
   // Template de status
@@ -186,10 +195,6 @@ app.post('/enviar', async (req, res) => {
     }
   }
 
-  // Texto livre - se veio orcamento mas template falhou, monta mensagem
-  if (!mensagem && orcamento) {
-    mensagem = 'Ola ' + (nome||'') + '! Segue o orcamento da sua bike: ' + (bike||'') + '\n\nServicos:\n' + (orcamento.servicos||'') + '\n\nTotal: ' + (orcamento.total||'');
-  }
   if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatoria' });
   try {
     const data = await sendTextMessage(telefone, mensagem);
