@@ -125,9 +125,16 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, langCode) {
+async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, obs, langCode) {
   let p = String(phone).replace(/\D/g, '');
   if (!p.startsWith('55')) p = '55' + p;
+  const parameters = [
+    { type: 'text', text: nome },
+    { type: 'text', text: bike },
+    { type: 'text', text: servicos },
+    { type: 'text', text: total },
+    { type: 'text', text: obs || ' ' }
+  ];
   const response = await axios.post(
     `https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`,
     {
@@ -140,12 +147,7 @@ async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, langCod
         components: [
           {
             type: 'body',
-            parameters: [
-              { type: 'text', text: nome },
-              { type: 'text', text: bike },
-              { type: 'text', text: servicos },
-              { type: 'text', text: total }
-            ]
+            parameters
           }
         ]
       }
@@ -156,8 +158,7 @@ async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, langCod
 }
 
 app.post('/enviar', async (req, res) => {
-  const { telefone, col, nome, bike, orcamento } = req.body;
-  let { mensagem } = req.body;
+  const { telefone, mensagem, col, nome, bike, orcamento } = req.body;
   if (!telefone) return res.status(400).json({ erro: 'telefone obrigatorio' });
 
   // Template de orçamento com 4 variáveis
@@ -165,7 +166,7 @@ app.post('/enviar', async (req, res) => {
     for (const lang of LANG_CODES) {
       try {
         const data = await sendOrcamentoTemplate(
-          telefone, nome, bike, orcamento.servicos, orcamento.total, lang
+          telefone, nome, bike, orcamento.servicos, orcamento.total, orcamento.obs || '', lang
         );
         console.log(`Template orcamento enviado com ${lang} para: ${telefone}`);
         return res.json({ sucesso: true, tipo: 'template_orcamento', data });
@@ -173,16 +174,8 @@ app.post('/enviar', async (req, res) => {
         console.log(`Orcamento template ${lang} falhou:`, err.response?.data?.error?.message || err.message);
       }
     }
-    // Fallback: monta mensagem de texto com os dados do orçamento
-    console.log('Todos os idiomas do template orcamento falharam — usando fallback texto livre');
-    mensagem =
-      '\uD83D\uDEB5 *Adventure Bikers*\n\n' +
-      'Ol\u00E1, *' + (nome || '') + '*!\n\n' +
-      'Segue o or\u00E7amento para a sua bike *' + (bike || '') + '*:\n\n' +
-      (orcamento.servicos || '') + '\n\n' +
-      '*Total: ' + (orcamento.total || '') + '*\n\n' +
-      'Qualquer d\u00FAvida, fale com a gente:\n' +
-      'https://wa.me/5519999683552';
+    // Fallback texto livre
+    console.log('Fallback texto livre para orcamento');
   }
 
   // Template de status
@@ -195,6 +188,19 @@ app.post('/enviar', async (req, res) => {
     }
   }
 
+  // Texto livre - se veio orcamento mas template falhou, monta mensagem
+  if (!mensagem && orcamento) {
+    const obsTexto = (orcamento.obs || '').trim();
+    mensagem =
+      '\uD83D\uDEB5 *Adventure Bikers*\n\n' +
+      'Ol\u00E1, *' + (nome || '') + '*!\n\n' +
+      'Segue o or\u00E7amento para a sua bike *' + (bike || '') + '*:\n\n' +
+      (orcamento.servicos || '') + '\n\n' +
+      '*Total: ' + (orcamento.total || '') + '*\n\n' +
+      (obsTexto ? obsTexto + '\n\n' : '') +
+      'Qualquer d\u00FAvida, fale com a gente:\n' +
+      'https://wa.me/5519999683552';
+  }
   if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatoria' });
   try {
     const data = await sendTextMessage(telefone, mensagem);
