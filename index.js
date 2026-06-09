@@ -158,7 +158,8 @@ async function sendOrcamentoTemplate(phone, nome, bike, servicos, total, obs, la
 }
 
 app.post('/enviar', async (req, res) => {
-  const { telefone, mensagem, col, nome, bike, orcamento } = req.body;
+  const { telefone, col, nome, bike, orcamento } = req.body;
+  let { mensagem } = req.body;
   if (!telefone) return res.status(400).json({ erro: 'telefone obrigatorio' });
 
   // Template de orçamento com 4 variáveis
