@@ -18,9 +18,9 @@ const WA_PHONE_ID = process.env.WA_PHONE_ID;
 
 const TEMPLATE_MAP = {
   entrada:    'bike_recebida',
-  avaliacao:  'bike_em_avaliacao',
+  avaliacao:  'bike_avalia',
   aprovacao:  'bike_orcamento_pronto',
-  aprovadas:  'bike_aprovada',
+  aprovadas:  'bike_aprov',
   servico:    'bike_em_servico',
   aguardando: 'bike_aguardando_peca',
   pronto:     'bike_pronta',
